@@ -363,6 +363,11 @@ h1 { font-size: 30px; color: #1f3a5f; }
 .rtable thead th { background: var(--sky); font-size: 12px; border-top: 0; }
 .rtable tfoot td { font-weight: 800; background: var(--lemon); border-top: 2.5px solid var(--ink); }
 .rtable td.neg { color: var(--red); font-weight: 700; }
+.sel { width: 100%; font: inherit; font-weight: 700; padding: 10px 12px; border: 2.5px solid var(--ink); border-radius: 14px; background: var(--paper); color: var(--ink); margin-bottom: 10px; }
+.myhist .sumgrid { grid-template-columns: repeat(3, 1fr); }
+.myhist .sm strong { font-size: clamp(14px, 4.2vw, 18px); }
+.myhist .sm { padding: 8px 9px; }
+.myhist .sm strong { font-size: clamp(13px, 3.9vw, 17px); }
 
 /* ===== Chế độ tối ===== */
 @media (prefers-color-scheme: dark) {
@@ -643,6 +648,34 @@ main { padding-bottom: 150px; }
       h("div", { class: "stack" }, h("button", { class: "btn go block", type: "button", onclick: function () { copy(text); } }, "Chép tóm tắt để dán vào Zalo"), h("button", { class: "btn line block", type: "button", onclick: closeSheet }, "Đóng"))];
     var panel = $("#panel"); panel.replaceChildren.apply(panel, nodes); $("#sheet").hidden = false; panel.scrollTop = 0;
   }
+  var meName = ""; try { meName = localStorage.getItem("dh-me") || ""; } catch (e) {}
+  function myCard() {
+    if (!hist || !hist.length) return null;
+    var nm = {}; hist.forEach(function (x) { nm[x.name] = 1; }); ms.forEach(function (m) { nm[m.name] = 1; });
+    var names = Object.keys(nm).sort(function (a, b) { return a.localeCompare(b, "vi"); });
+    var sel2 = h("select", { class: "sel", "aria-label": "Chọn tên để xem lịch sử", onchange: function (e) { meName = e.target.value; try { localStorage.setItem("dh-me", meName); } catch (x) {} render(); } },
+      h("option", { value: "" }, "— Chọn tên của bạn —"),
+      names.map(function (n) { return h("option", { value: n, selected: n === meName }, n); }));
+    var kids = [h("div", { class: "prog-head" }, h("strong", null, "Lịch sử của tôi")), sel2];
+    if (meName) {
+      var rows = hist.filter(function (x) { return x.name === meName && x.date; }).sort(function (a, b) { return a.date < b.date ? 1 : -1; });
+      if (!rows.length) kids.push(h("p", { class: "fine" }, "Chưa có buổi nào được lưu cho " + meName + "."));
+      else {
+        var paidSum = 0, owe = 0;
+        rows.forEach(function (x) { if (x.amount > 0) { if (x.paid) paidSum += x.amount; else owe += x.amount; } });
+        kids.push(h("div", { class: "sumgrid" },
+          h("div", { class: "sm a" }, h("span", null, "Số buổi"), h("strong", null, String(rows.length))),
+          h("div", { class: "sm c" }, h("span", null, "Đã đóng"), h("strong", null, fmt(paidSum))),
+          h("div", { class: "sm d" }, h("span", null, "Còn nợ"), h("strong", null, fmt(owe)))));
+        kids.push(h("div", { class: "plist" }, rows.slice(0, 6).map(function (x) {
+          var dm = /^\d{4}-(\d{2})-(\d{2})$/.exec(x.date);
+          return h("div", null, h("span", null, (dm ? dm[2] + "/" + dm[1] : "?") + (x.amount > 0 ? " · " + fmt(x.amount) : " · ứng sân")), h("b", null, x.amount > 0 ? (x.paid ? "Đã thu ✓" : "Chưa thu") : "✓"));
+        })));
+        if (rows.length > 6) kids.push(h("p", { class: "fine" }, "Hiện 6 buổi gần nhất."));
+      }
+    }
+    return h("section", { class: "card myhist" }, kids);
+  }
   function loadHistory() {
     var u = DATA.historyUrl;
     if (!u || u.indexOf("https://docs.google.com/") !== 0) { hist = null; return; }
@@ -686,6 +719,7 @@ main { padding-bottom: 150px; }
         h("p", { class: "fine" }, "Ai có tên ở đây hãy chuyển khoản bù và nhắn người quản lý để được xóa khỏi danh sách.")));
     }
     var sc = summaryCard(); if (sc) app.append(sc);
+    var mc = myCard(); if (mc) app.append(mc);
     app.append(h("p", { class: "hint" }, "Chọn tên của bạn (hoặc chọn nhiều người nếu bạn trả hộ), rồi bấm ", h("b", null, "Thanh toán"), "."));
     app.append(h("div", { class: "grid" }, ms.map(function (m) {
       if (m.payer || m.paid) return h("div", { class: "tile me" }, h("div", { class: "txt" }, h("span", { class: "nm" }, m.name), h("span", { class: "meta" }, h("span", { class: "amt" }, m.payer ? "Đã ứng tiền sân" : "Đã thu ✓"))));
