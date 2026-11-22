@@ -758,7 +758,10 @@ main { padding-bottom: 150px; }
     var p = picked(); if (!p.length) return;
     if (DATA.auto && p.length > 6) { toast("Mỗi lần chuyển tối đa 6 người. Hãy chia làm 2 lần."); return; }
     var amount = p.reduce(function (s, m) { return s + amountFor(m); }, 0);
-    var note = DATA.auto ? ("DH" + (d ? d[3] + d[2] : "") + " " + p.map(function (m) { return m.code; }).join(" ")).slice(0, 25).trim() : plain("DH" + (d ? d[3] + d[2] : "") + " " + p.map(function (m) { return plain(m.name); }).join(" ")).slice(0, 25).trim();
+    var pre = (DATA.prefix || "SEVQR");
+    var autoNote = (pre + " DH" + (d ? d[3] + d[2] : "") + " " + p.map(function (m) { return m.code; }).join(" ")).trim();
+    if (DATA.auto && autoNote.length > 25) { toast("Nội dung chuyển khoản quá dài. Hãy chọn ít người hơn mỗi lần."); return; }
+    var note = DATA.auto ? autoNote : plain("DH" + (d ? d[3] + d[2] : "") + " " + p.map(function (m) { return plain(m.name); }).join(" ")).slice(0, 25).trim();
     var B = DATA.bank, ok = B && B.bin && B.account;
     var nodes = [h("h2", null, "Thanh toán"), h("p", { class: "big" }, fmt(amount)),
       h("div", { class: "plist" }, p.map(function (m) { return h("div", null, h("span", null, m.name + (m.group === "guest" ? " (khách)" : " (cty)") + (DATA.auto ? " · mã " + m.code : "")), h("b", null, fmt(amountFor(m)))); }))];
@@ -821,6 +824,7 @@ main { padding-bottom: 150px; }
         else if (a === "so tai khoan") acct = b.replace(/\D/g, "");
         else if (a === "chu tai khoan") holder = b;
         else if (a === "tu dong xac nhan") out.auto = yes(b);
+        else if (a.indexOf("tien to") === 0) { var px = b.replace(/[^A-Za-z0-9]/g, "").slice(0, 10).toUpperCase(); if (px) out.prefix = px; }
         else if (a.indexOf("link lich su") === 0) { if (b.indexOf("https://docs.google.com/") === 0) out.historyUrl = b; }
         else if (a.indexOf("link bao") === 0) { if (b.indexOf("https://script.google.com/") === 0) out.reportUrl = b; }
       } else {
