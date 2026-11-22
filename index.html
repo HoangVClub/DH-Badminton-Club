@@ -511,7 +511,8 @@ main { padding-bottom: 150px; }
   function repKey() { return "dh-rep-" + (DATA.dateISO || ""); }
   function loadRep() { try { localRep = JSON.parse(localStorage.getItem(repKey()) || "{}") || {}; } catch (e) { localRep = {}; } }
   function saveRep() { try { localStorage.setItem(repKey(), JSON.stringify(localRep)); } catch (e) {} }
-  function pendingOf(m) { return !(m.payer || m.paid) && (m.reported || localRep[m.name]); }
+  function freshRep(v) { return typeof v === "number" && Date.now() - v < 30 * 60 * 1000; }
+  function pendingOf(m) { return !(m.payer || m.paid) && (m.reported || freshRep(localRep[m.name])); }
   function prep() {
     loadRep();
     ms = DATA.members; n = ms.length;
@@ -744,7 +745,7 @@ main { padding-bottom: 150px; }
     var names = p.map(function (m) { return m.name; });
     fetch(DATA.reportUrl, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ names: names, ts: Date.now() }) })
       .then(function () {
-        names.forEach(function (nm) { localRep[nm] = true; }); saveRep();
+        names.forEach(function (nm) { localRep[nm] = Date.now(); }); saveRep();
         p.forEach(function (m) { sel.delete(m.id); });
         closeSheet(); render(); toast("Đã báo cho người quản lý. Đang chờ xác nhận.");
       })
